@@ -1,0 +1,376 @@
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
+
+public class CsvDataGenerator_V2 {
+
+    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+    private static final Random random = new Random();
+    private static final String QUOTE = "\"";
+    private static final String COMMA = "\u001B";
+
+    // 共享字段数据存储，确保两个文件的重复字段值相同
+    private static Map<String, String> sharedFieldValues = new HashMap<>();
+
+    public static void main(String[] args) {
+        int numberOfRecords = 1000; // 要生成的记录数
+        String mainTableFilePath = "ABCINVM.csv"; // 存款主表文件
+        String extensionTableFilePath = "ABCINVE.csv"; // 存款账户扩展信息表文件
+
+        try {
+            // 生成并写入存款主表数据
+            generateAndWriteTableData(numberOfRecords, mainTableFilePath, true);
+
+            // 生成并写入存款账户扩展信息表数据
+            generateAndWriteTableData(numberOfRecords, extensionTableFilePath, false);
+
+            System.out.println("CSV文件生成完成: " + mainTableFilePath + " 和 " + extensionTableFilePath);
+        } catch (IOException e) {
+            System.err.println("生成CSV文件时出错: " + e.getMessage());
+        }
+    }
+
+    private static void generateAndWriteTableData(int numberOfRecords, String filePath, boolean isMainTable) throws IOException {
+        try (FileWriter writer = new FileWriter(filePath)) {
+            // 写入CSV头部
+            writer.write(isMainTable ? getMainTableCsvHeader() : getExtensionTableCsvHeader());
+
+            // 生成并写入数据行
+            for (int i = 0; i < numberOfRecords; i++) {
+                writer.write(isMainTable ? generateMainTableCsvRecord() : generateExtensionTableCsvRecord());
+            }
+        }
+    }
+
+    private static String getMainTableCsvHeader() {
+        // 存款主表字段头
+        return quoteField("KEY_1") + COMMA + quoteField("TRAP") + COMMA + quoteField("INVM_TRM_RLLOVR_TY") + COMMA +
+                quoteField("INVM_RATE_IND") + COMMA + quoteField("STMT_FREQUENCY") + COMMA + quoteField("STMT_CYCLE") + COMMA +
+                quoteField("STOP_WDL_IND") + COMMA + quoteField("OMNI_FLAG") + COMMA + quoteField("INT_RT_CHNG_ST_IND") + COMMA +
+                quoteField("SWEEP_ACCT_FLAG") + COMMA + quoteField("STMT_DAY") + COMMA + quoteField("NEG_RATES_FLAG") + COMMA +
+                quoteField("CAS_CHQ_STOP_IND") + COMMA + quoteField("LIM_CNTRL_FLAG_CAP") + COMMA + quoteField("LST_CUST_CR_DT") + COMMA +
+                quoteField("LST_CUST_DR_DT") + COMMA + quoteField("CURR_BAL") + COMMA + quoteField("HOLD_VAL") + COMMA +
+                quoteField("INVM_TRM_VALUE") + COMMA + quoteField("INT_ADJUSTMENT") + COMMA + quoteField("CUSTOMER_NO") + COMMA +
+                quoteField("ACCT_TYPE") + COMMA + quoteField("BRANCH_NO") + COMMA + quoteField("ACCT_OPEN_DT") + COMMA +
+                quoteField("INT_FRM_DT") + COMMA + quoteField("INT_TO_DT") + COMMA + quoteField("INVM_MAT_DT") + COMMA +
+                quoteField("CURR_STATUS") + COMMA + quoteField("CURRENCY") + COMMA + quoteField("LST_FIN_DT") + COMMA +
+                quoteField("VAR_INT_RATE") + COMMA + quoteField("CR_STORE_RATE") + COMMA + quoteField("GL_CLASS_CODE") + COMMA +
+                quoteField("INVM_TERM_BASIS") + COMMA + quoteField("INVM_TRM_DAY") + COMMA + quoteField("FIL13") + "\n";
+    }
+
+    private static String getExtensionTableCsvHeader() {
+        // 存款账户扩展信息表字段头
+        return quoteField("KEY_1") + COMMA + quoteField("NO_OF_HOLDS") + COMMA + quoteField("NO_OF_NPBS") + COMMA +
+                quoteField("NO_OF_STOPS") + COMMA + quoteField("PB_STATUS") + COMMA + quoteField("CHOP_STATUS") + COMMA +
+                quoteField("FUND_TYPE") + COMMA + quoteField("FCY_ITEM") + COMMA + quoteField("FCY_CLASS") + COMMA +
+                quoteField("DIWW_EDU_BRK_FLG") + COMMA + quoteField("INSTRU_CNT") + COMMA + quoteField("AGMT_FLAG") + COMMA +
+                quoteField("PRIM_ACCT_FLG") + COMMA + quoteField("EMBOSS_FLAG") + COMMA + quoteField("CARD_PRIM_ACCT_IND") + COMMA +
+                quoteField("PB_NUMBER") + COMMA + quoteField("FCY_RANGE") + COMMA + quoteField("NTC_LST_NTC_CNT") + COMMA +
+                quoteField("NEGOED_INT_RATE_EXEC_MODE") + COMMA + quoteField("NEGOED_EXEC_INT_RATE") + COMMA +
+                quoteField("NEGOED_INT_RATE_FLOAT") + COMMA + quoteField("SWINDLE_STAT") + COMMA + quoteField("FIL22") + COMMA +
+                quoteField("SKLI_POID") + COMMA + quoteField("OD_VISA_AREA_1") + COMMA + quoteField("DR_INT_ADJUSTMENT") + COMMA +
+                quoteField("ACCT_TYPE_CHG_FLAG") + COMMA + quoteField("MCURR_ACCT_TYPE") + COMMA + quoteField("TD_INST_AMT") + COMMA +
+                quoteField("TEMP_ACCT_EXP_DT") + COMMA + quoteField("ANNL_REVW_DATE") + COMMA + quoteField("FREEZE_EXP_DATE") + COMMA +
+                quoteField("CCDA_VSTRO_LOW_RT") + COMMA + quoteField("NRDA_THRSHLD_AMT") + COMMA + quoteField("FIRST_DEP_IBD_DT") + COMMA +
+                quoteField("NTC_CNCL_INT_PEN") + COMMA + quoteField("ADB_SUM") + COMMA + quoteField("MAT_INT_AVAIL") + COMMA +
+                quoteField("WDL_DEP_FREQ") + COMMA + quoteField("WDL_DEP_FREQ_BAS") + COMMA + quoteField("BAL_BFR_BREAK") + COMMA +
+                quoteField("DIWW_EDU_BRK_DT") + COMMA + quoteField("SAVE_BREAK_INT") + COMMA + quoteField("SP_HOLD_VALUE") + COMMA +
+                quoteField("SRC_OF_FUND_CODE") + COMMA + quoteField("CHQ_PASWD_TYPE") + COMMA + quoteField("FIL01") + "\n";
+    }
+
+    private static String generateMainTableCsvRecord() {
+        StringBuilder record = new StringBuilder();
+
+        // KEY_1 (共享字段)
+        String key1 = generateKey1();
+        sharedFieldValues.put("KEY_1", key1);
+        record.append(quoteField(key1)).append(COMMA);
+
+        // TRAP (1-12)
+        record.append(quoteField(random.nextInt(12) + 1)).append(COMMA);
+
+        // INVM_TRM_RLLOVR_TY (0-4,9)
+        record.append(quoteField(random.nextInt(6) == 5 ? 9 : random.nextInt(5))).append(COMMA);
+
+        // INVM_RATE_IND (0-6,9)
+        record.append(quoteField(random.nextInt(8) == 7 ? 9 : random.nextInt(7))).append(COMMA);
+
+        // STMT_FREQUENCY (1-9)
+        record.append(quoteField(random.nextInt(9) + 1)).append(COMMA);
+
+        // STMT_CYCLE (1-11,99)
+        record.append(quoteField(random.nextInt(13) == 12 ? 99 : random.nextInt(11) + 1)).append(COMMA);
+
+        // STOP_WDL_IND (0-9)
+        record.append(quoteField(random.nextInt(10))).append(COMMA);
+
+        // OMNI_FLAG (0-6,9)
+        record.append(quoteField(random.nextInt(8) == 7 ? 9 : random.nextInt(7))).append(COMMA);
+
+        // INT_RT_CHNG_ST_IND (0-9)
+        record.append(quoteField(random.nextInt(10))).append(COMMA);
+
+        // SWEEP_ACCT_FLAG (0-1)
+        record.append(quoteField(random.nextInt(2))).append(COMMA);
+
+        // STMT_DAY (1-10,99)
+        record.append(quoteField(random.nextInt(12) == 11 ? 99 : random.nextInt(10) + 1)).append(COMMA);
+
+        // NEG_RATES_FLAG (1-9)
+        record.append(quoteField(random.nextInt(9) + 1)).append(COMMA);
+
+        // CAS_CHQ_STOP_IND (0-9)
+        record.append(quoteField(random.nextInt(10))).append(COMMA);
+
+        // LIM_CNTRL_FLAG_CAP (M,S,A,U,C,V,空格)
+        char[] limFlags = {'M', 'S', 'A', 'U', 'C', 'V', ' '};
+        record.append(quoteField(limFlags[random.nextInt(limFlags.length)])).append(COMMA);
+
+        // LST_CUST_CR_DT (日期)
+        record.append(quoteField(generateRandomDate())).append(COMMA);
+
+        // LST_CUST_DR_DT (日期)
+        record.append(quoteField(generateRandomDate())).append(COMMA);
+
+        // CURR_BAL (0-1000000)
+        record.append(quoteField(String.format("%.2f", random.nextDouble() * 1000000))).append(COMMA);
+
+        // HOLD_VAL (0-100000)
+        record.append(quoteField(String.format("%.2f", random.nextDouble() * 100000))).append(COMMA);
+
+        // INVM_TRM_VALUE (0-1000000)
+        record.append(quoteField(String.format("%.2f", random.nextDouble() * 1000000))).append(COMMA);
+
+        // INT_ADJUSTMENT (-1000-1000)
+        record.append(quoteField(String.format("%.2f", (random.nextDouble() * 2000) - 1000))).append(COMMA);
+
+        // CUSTOMER_NO (P,C,G,F,I,O,S,B,T,E + 数字)
+        char[] customerTypes = {'P', 'C', 'G', 'F', 'I', 'O', 'S', 'B', 'T', 'E'};
+        record.append(quoteField(customerTypes[random.nextInt(customerTypes.length)] + "" +
+                (random.nextInt(90000000) + 10000000))).append(COMMA);
+
+        // ACCT_TYPE (1-15,99)
+        record.append(quoteField(random.nextInt(17) == 16 ? 99 : random.nextInt(15) + 1)).append(COMMA);
+
+        // BRANCH_NO (1-13,99)
+        record.append(quoteField(random.nextInt(900)+100)).append(COMMA);
+
+        // ACCT_OPEN_DT (日期)
+        record.append(quoteField(generateRandomDate())).append(COMMA);
+
+        // INT_FRM_DT (日期)
+        record.append(quoteField(generateRandomDate())).append(COMMA);
+
+        // INT_TO_DT (日期)
+        record.append(quoteField(generateRandomDate())).append(COMMA);
+
+        // INVM_MAT_DT (日期)
+        record.append(quoteField(generateRandomDate())).append(COMMA);
+
+        // CURR_STATUS (0-12,99)
+        record.append(quoteField(random.nextInt(14) == 13 ? 99 : random.nextInt(13))).append(COMMA);
+
+        // CURRENCY (001-020,099)
+        record.append(quoteField(String.format("%03d", random.nextInt(21) == 20 ? 99 : random.nextInt(20) + 1))).append(COMMA);
+
+        // LST_FIN_DT (日期)
+        record.append(quoteField(generateRandomDate())).append(COMMA);
+
+        // VAR_INT_RATE (0.1-10)
+        record.append(quoteField(String.format("%.4f", 0.1 + random.nextDouble() * 9.9))).append(COMMA);
+
+        // CR_STORE_RATE (0.1-10)
+        record.append(quoteField(String.format("%.4f", 0.1 + random.nextDouble() * 9.9))).append(COMMA);
+
+        // GL_CLASS_CODE (特定值)
+        String[] glClassCodes = {"1000","1100","1200","1300","1400","2000","2100","2200",
+                "2300","2400","3000","4000","5000","5100","5200","5300","5400","9000"};
+        record.append(quoteField(glClassCodes[random.nextInt(glClassCodes.length)])).append(COMMA);
+
+        // INVM_TERM_BASIS (1-9)
+        record.append(quoteField(random.nextInt(9) + 1)).append(COMMA);
+
+        // INVM_TRM_DAY (1-3650)
+        record.append(quoteField(random.nextInt(3650) + 1)).append(COMMA);
+
+        // FIL13 (备注)
+        record.append(quoteField(""));
+
+        record.append("\n");
+        return record.toString();
+    }
+
+    private static String generateExtensionTableCsvRecord() {
+        StringBuilder record = new StringBuilder();
+
+        // KEY_1 (共享字段)
+        String key1 = sharedFieldValues.getOrDefault("KEY_1", generateKey1());
+        record.append(quoteField(key1)).append(COMMA);
+
+        // NO_OF_HOLDS (0-100)
+        record.append(quoteField(random.nextInt(101))).append(COMMA);
+
+        // NO_OF_NPBS (0-100)
+        record.append(quoteField(random.nextInt(101))).append(COMMA);
+
+        // NO_OF_STOPS (0-100)
+        record.append(quoteField(random.nextInt(101))).append(COMMA);
+
+        // PB_STATUS (0-9)
+        record.append(quoteField(random.nextInt(10))).append(COMMA);
+
+        // CHOP_STATUS (0-9)
+        record.append(quoteField(random.nextInt(10))).append(COMMA);
+
+        // FUND_TYPE (1-12,99)
+        record.append(quoteField(random.nextInt(13) == 12 ? 99 : random.nextInt(12) + 1)).append(COMMA);
+
+        // FCY_ITEM (1-17,99)
+        record.append(quoteField(random.nextInt(18) == 17 ? 99 : random.nextInt(17) + 1)).append(COMMA);
+
+        // FCY_CLASS (1-15,99)
+        record.append(quoteField(random.nextInt(16) == 15 ? 99 : random.nextInt(15) + 1)).append(COMMA);
+
+        // DIWW_EDU_BRK_FLG (1-15,99)
+        record.append(quoteField(random.nextInt(16) == 15 ? 99 : random.nextInt(15) + 1)).append(COMMA);
+
+        // INSTRU_CNT (1-10,99)
+        record.append(quoteField(random.nextInt(11) == 10 ? 99 : random.nextInt(10) + 1)).append(COMMA);
+
+        // AGMT_FLAG (0-9)
+        record.append(quoteField(random.nextInt(10))).append(COMMA);
+
+        // PRIM_ACCT_FLG (0-6,9)
+        record.append(quoteField(random.nextInt(8) == 7 ? 9 : random.nextInt(7))).append(COMMA);
+
+        // EMBOSS_FLAG (0-3,9)
+        record.append(quoteField(random.nextInt(5) == 4 ? 9 : random.nextInt(4))).append(COMMA);
+
+        // CARD_PRIM_ACCT_IND (0-6,9)
+        record.append(quoteField(random.nextInt(8) == 7 ? 9 : random.nextInt(7))).append(COMMA);
+
+        // PB_NUMBER (PB + 数字)
+        record.append(quoteField("PB" + (random.nextInt(900000000) + 100000000))).append(COMMA);
+
+        // FCY_RANGE (1-15,99)
+        record.append(quoteField(random.nextInt(16) == 15 ? 99 : random.nextInt(15) + 1)).append(COMMA);
+
+        // NTC_LST_NTC_CNT (1-15,99)
+        record.append(quoteField(random.nextInt(16) == 15 ? 99 : random.nextInt(15) + 1)).append(COMMA);
+
+        // NEGOED_INT_RATE_EXEC_MODE (1-10,99)
+        record.append(quoteField(random.nextInt(11) == 10 ? 99 : random.nextInt(10) + 1)).append(COMMA);
+
+        // NEGOED_EXEC_INT_RATE (0.1-10)
+        record.append(quoteField(String.format("%.8f", 0.1 + random.nextDouble() * 9.9))).append(COMMA);
+
+        // NEGOED_INT_RATE_FLOAT (-5-5)
+        record.append(quoteField(String.format("%.8f", (random.nextDouble() * 10) - 5))).append(COMMA);
+
+        // SWINDLE_STAT (0-9)
+        record.append(quoteField(random.nextInt(10))).append(COMMA);
+
+        // FIL22 (1-15,99)
+        record.append(quoteField(random.nextInt(16) == 15 ? 99 : random.nextInt(15) + 1)).append(COMMA);
+
+        // SKLI_POID (100-130,999)
+        record.append(quoteField(random.nextInt(31) == 30 ? 999 : random.nextInt(30) + 100)).append(COMMA);
+
+        // OD_VISA_AREA_1 (1-9)
+        record.append(quoteField(random.nextInt(9) + 1)).append(COMMA);
+
+        // DR_INT_ADJUSTMENT (-1000-1000)
+        record.append(quoteField(String.format("%.5f", (random.nextDouble() * 2000) - 1000))).append(COMMA);
+
+        // ACCT_TYPE_CHG_FLAG (1-2)
+        record.append(quoteField(random.nextInt(2) + 1)).append(COMMA);
+
+        // MCURR_ACCT_TYPE (0-11,99)
+        record.append(quoteField(random.nextInt(13) == 12 ? 99 : random.nextInt(12))).append(COMMA);
+
+        // TD_INST_AMT (0-100000)
+        record.append(quoteField(String.format("%.2f", random.nextDouble() * 100000))).append(COMMA);
+
+        // TEMP_ACCT_EXP_DT (未来日期)
+        record.append(quoteField(generateFutureDate())).append(COMMA);
+
+        // ANNL_REVW_DATE (未来日期)
+        record.append(quoteField(generateFutureDate())).append(COMMA);
+
+        // FREEZE_EXP_DATE (未来日期)
+        record.append(quoteField(generateFutureDate())).append(COMMA);
+
+        // CCDA_VSTRO_LOW_RT (0.1-10)
+        record.append(quoteField(String.format("%.4f", 0.1 + random.nextDouble() * 9.9))).append(COMMA);
+
+        // NRDA_THRSHLD_AMT (1000-100000)
+        record.append(quoteField(String.format("%.2f", 1000 + random.nextDouble() * 99000))).append(COMMA);
+
+        // FIRST_DEP_IBD_DT (日期)
+        record.append(quoteField(generateRandomDate())).append(COMMA);
+
+        // NTC_CNCL_INT_PEN (0-1000)
+        record.append(quoteField(String.format("%.2f", random.nextDouble() * 1000))).append(COMMA);
+
+        // ADB_SUM (0-1000000)
+        record.append(quoteField(String.format("%.2f", random.nextDouble() * 1000000))).append(COMMA);
+
+        // MAT_INT_AVAIL (0-10000)
+        record.append(quoteField(String.format("%.2f", random.nextDouble() * 10000))).append(COMMA);
+
+        // WDL_DEP_FREQ (1-12,99)
+        record.append(quoteField(random.nextInt(13) == 12 ? 99 : random.nextInt(12) + 1)).append(COMMA);
+
+        // WDL_DEP_FREQ_BAS (1-10,99)
+        record.append(quoteField(random.nextInt(11) == 10 ? 99 : random.nextInt(10) + 1)).append(COMMA);
+
+        // BAL_BFR_BREAK (0-1000000)
+        record.append(quoteField(String.format("%.2f", random.nextDouble() * 1000000))).append(COMMA);
+
+        // DIWW_EDU_BRK_DT (日期)
+        record.append(quoteField(generateRandomDate())).append(COMMA);
+
+        // SAVE_BREAK_INT (0-1000)
+        record.append(quoteField(String.format("%.2f", random.nextDouble() * 1000))).append(COMMA);
+
+        // SP_HOLD_VALUE (0-100000)
+        record.append(quoteField(String.format("%.2f", random.nextDouble() * 100000))).append(COMMA);
+
+        // SRC_OF_FUND_CODE (1-15,99)
+        record.append(quoteField(random.nextInt(16) == 15 ? 99 : random.nextInt(15) + 1)).append(COMMA);
+
+        // CHQ_PASWD_TYPE (1-9)
+        record.append(quoteField(random.nextInt(9) + 1)).append(COMMA);
+
+        // FIL01 (扩展字段)
+        record.append(quoteField(""));
+
+        record.append("\n");
+        return record.toString();
+    }
+
+    private static String generateKey1() {
+        return random.nextInt(900) + 100 + "" + random.nextLong(10000000000000L);
+    }
+
+    private static String generateRandomDate() {
+        // 生成2000-01-01到2023-12-31之间的随机日期
+        long start = new GregorianCalendar(2000, 0, 1).getTimeInMillis();
+        long end = new GregorianCalendar(2023, 11, 31).getTimeInMillis();
+        long randomDate = ThreadLocalRandom.current().nextLong(start, end + 1);
+        return dateFormat.format(new Date(randomDate));
+    }
+
+    private static String generateFutureDate() {
+        // 生成未来365天内的日期
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DAY_OF_YEAR, random.nextInt(365) + 1);
+        return dateFormat.format(cal.getTime());
+    }
+
+    private static String quoteField(Object field) {
+        return QUOTE + field.toString() + QUOTE;
+    }
+}
